@@ -1,0 +1,24 @@
+# Node
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# Next
+.next/
+out/
+
+# Expo
+.expo/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Env
+.env
+.env.*
+
+# Uploads
+apps/backend/.data/
+apps/backend/uploads/
