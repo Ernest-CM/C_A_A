@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Optional
 
 from bson import ObjectId
@@ -11,6 +12,10 @@ from app.services.mongo import get_db
 from app.services.summarizer import SummarizerError, SummaryLength, summarize_text_with_provider
 
 router = APIRouter()
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class SummarizeRequest(BaseModel):
@@ -47,5 +52,26 @@ async def summarize_content(request: SummarizeRequest, user_id: str = Depends(ge
         result = await summarize_text_with_provider(combined, request.focus, request.length)
     except SummarizerError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
+
+    focus = (request.focus or "").strip() or None
+    # Cache summary for reuse (e.g., quiz generation on long notes).
+    await db.summaries.update_one(
+        {
+            "user_id": user_id,
+            "file_id": oid,
+            "focus": focus,
+            "length": request.length,
+        },
+        {
+            "$set": {
+                "provider": result.get("provider"),
+                "summary": result.get("summary"),
+                "file_updated_at": file_doc.get("updated_at"),
+                "updated_at": _utc_now(),
+            },
+            "$setOnInsert": {"created_at": _utc_now()},
+        },
+        upsert=True,
+    )
 
     return {"file_id": request.file_id, **result}

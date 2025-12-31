@@ -18,18 +18,39 @@ class SummarizerError(Exception):
 
 
 def _configured_provider() -> str | None:
-    if settings.ollama_url and settings.ollama_model:
+    if settings.ollama_url and (getattr(settings, "ollama_summary_model", None) or settings.ollama_model):
         return "ollama"
     if settings.openai_api_key:
         return "openai"
     return None
 
 
+def _ollama_model() -> str:
+    model = getattr(settings, "ollama_summary_model", None) or settings.ollama_model
+    if not model:
+        raise SummarizerError("Ollama model is not configured")
+    return model
+
+
 def _prepare_prompt(text: str) -> str:
     normalized = " ".join(text.split())
-    if len(normalized) > MAX_SUMMARY_CHARS:
-        normalized = normalized[:MAX_SUMMARY_CHARS]
+    limit = getattr(settings, "summary_max_chars", MAX_SUMMARY_CHARS)
+    if len(normalized) > limit:
+        normalized = normalized[:limit]
     return normalized
+
+
+def _ollama_perf_options() -> dict[str, int]:
+    opts: dict[str, int] = {}
+    if getattr(settings, "ollama_num_ctx", None) is not None:
+        opts["num_ctx"] = int(settings.ollama_num_ctx)
+    if getattr(settings, "ollama_num_thread", None) is not None:
+        opts["num_thread"] = int(settings.ollama_num_thread)
+    if getattr(settings, "ollama_num_batch", None) is not None:
+        opts["num_batch"] = int(settings.ollama_num_batch)
+    if getattr(settings, "ollama_num_gpu", None) is not None:
+        opts["num_gpu"] = int(settings.ollama_num_gpu)
+    return opts
 
 
 def _ollama_endpoint() -> str:
@@ -40,14 +61,14 @@ def _ollama_endpoint() -> str:
 
 
 async def _summarize_with_ollama(prompt: str, *, num_predict: int) -> str:
-    if not settings.ollama_model:
-        raise SummarizerError("Ollama model is not configured")
+    model = _ollama_model()
 
     payload = {
-        "model": settings.ollama_model,
+        "model": model,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": 0.3, "num_predict": int(num_predict)},
+        "keep_alive": getattr(settings, "ollama_keep_alive", "10m"),
+        "options": {"temperature": 0.3, "num_predict": int(num_predict), **_ollama_perf_options()},
     }
 
     timeout = httpx.Timeout(180.0, connect=5.0)

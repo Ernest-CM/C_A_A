@@ -28,6 +28,11 @@ def create_app() -> FastAPI:
         await db.users.create_index([("email", ASCENDING)], unique=True)
         await db.files.create_index([("user_id", ASCENDING), ("deleted_at", ASCENDING), ("created_at", DESCENDING)])
         await db.extracted_pages.create_index([("user_id", ASCENDING), ("file_id", ASCENDING), ("page_number", ASCENDING)])
+        await db.summaries.create_index(
+            [("user_id", ASCENDING), ("file_id", ASCENDING), ("focus", ASCENDING), ("length", ASCENDING)],
+            unique=True,
+        )
+        await db.summaries.create_index([("user_id", ASCENDING), ("file_id", ASCENDING), ("updated_at", DESCENDING)])
 
     @app.get("/health")
     async def health() -> dict[str, object]:

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import textwrap
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import httpx
 
@@ -16,17 +17,26 @@ logger = logging.getLogger(__name__)
 
 MAX_SOURCE_CHARS = 20000
 
+QuizMode = Literal["options", "theory", "both"]
+
 
 class QuizGeneratorError(Exception):
     pass
 
 
 def _configured_provider() -> str | None:
-    if settings.ollama_url and settings.ollama_model:
+    if settings.ollama_url and (getattr(settings, "ollama_quiz_model", None) or settings.ollama_model):
         return "ollama"
     if settings.openai_api_key:
         return "openai"
     return None
+
+
+def _ollama_model() -> str:
+    model = getattr(settings, "ollama_quiz_model", None) or settings.ollama_model
+    if not model:
+        raise QuizGeneratorError("Ollama model is not configured")
+    return model
 
 
 def _ollama_endpoint() -> str:
@@ -38,18 +48,42 @@ def _ollama_endpoint() -> str:
 
 def _prepare_source(text: str) -> str:
     normalized = " ".join(text.split())
-    if len(normalized) > MAX_SOURCE_CHARS:
-        normalized = normalized[:MAX_SOURCE_CHARS]
+    limit = getattr(settings, "quiz_max_source_chars", MAX_SOURCE_CHARS)
+    if len(normalized) > limit:
+        normalized = normalized[:limit]
     return normalized
+
+
+def _ollama_perf_options() -> dict[str, Any]:
+    opts: dict[str, Any] = {}
+    if getattr(settings, "ollama_num_ctx", None) is not None:
+        opts["num_ctx"] = int(settings.ollama_num_ctx)
+    if getattr(settings, "ollama_num_thread", None) is not None:
+        opts["num_thread"] = int(settings.ollama_num_thread)
+    if getattr(settings, "ollama_num_batch", None) is not None:
+        opts["num_batch"] = int(settings.ollama_num_batch)
+    if getattr(settings, "ollama_num_gpu", None) is not None:
+        opts["num_gpu"] = int(settings.ollama_num_gpu)
+    return opts
 
 
 def _num_predict_for_questions(n: int) -> int:
     # Rough heuristic: multiple-choice questions with short explanations.
     # Give extra headroom to avoid truncation (which often breaks JSON).
-    return max(600, min(4096, int(220 * n)))
+    # Lower cap keeps latency down on local machines.
+    return max(450, min(2048, int(160 * n)))
 
 
-def _build_prompt(source: str, *, num_questions: int) -> str:
+def _build_prompt(source: str, *, num_questions: int, mode: QuizMode) -> str:
+    mcq_count = int(num_questions)
+    theory_count = 0
+    if mode == "theory":
+        mcq_count = 0
+        theory_count = int(num_questions)
+    elif mode == "both":
+        mcq_count = int(math.ceil(num_questions / 2))
+        theory_count = int(num_questions - mcq_count)
+
     return textwrap.dedent(
         f"""\
         Task: Generate a quiz based ONLY on the provided study notes.
@@ -58,8 +92,20 @@ def _build_prompt(source: str, *, num_questions: int) -> str:
         - You MUST create exam-style questions derived from the notes.
         Requirements:
         - Generate exactly {num_questions} questions.
-        - Each question must be multiple-choice with 4 options.
-        - Provide the correct option letter (A/B/C/D) and a brief explanation (1 sentence).
+        - Mode: {mode}.
+        - If mode is "options": generate {num_questions} multiple-choice questions.
+        - If mode is "theory": generate {num_questions} theory questions.
+        - If mode is "both": generate exactly {mcq_count} multiple-choice and {theory_count} theory questions.
+
+        Multiple-choice question rules:
+        - 4 options labeled A/B/C/D.
+        - Provide the correct option letter (A/B/C/D).
+
+        Theory question rules:
+        - Provide a concise model answer as a short text (1-2 sentences or key points).
+
+        Explanation rules:
+        - Provide a brief explanation (1 short sentence, <= 120 characters) when possible.
         - Keep questions clear and exam-style.
 
         Output format:
@@ -70,10 +116,12 @@ def _build_prompt(source: str, *, num_questions: int) -> str:
             "questions": [
               {{
                 "id": number,
+                                "type": "mcq"|"theory",
                 "question": string,
-                "options": [{{"label": "A", "text": string}}, {{"label": "B", "text": string}}, {{"label": "C", "text": string}}, {{"label": "D", "text": string}}],
-                "answer": "A"|"B"|"C"|"D",
-                "explanation": string
+                                "options": [{{"label": "A", "text": string}}, {{"label": "B", "text": string}}, {{"label": "C", "text": string}}, {{"label": "D", "text": string}}],
+                                "answer": "A"|"B"|"C"|"D",
+                                "answer_text": string,
+                                "explanation": string
               }}
             ]
           }}
@@ -88,9 +136,56 @@ def _build_prompt(source: str, *, num_questions: int) -> str:
     ).strip()
 
 
-def _ollama_quiz_json_schema(*, num_questions: int) -> dict[str, Any]:
+def _ollama_quiz_json_schema(*, num_questions: int, mode: QuizMode) -> dict[str, Any]:
     # Ollama supports passing a JSON Schema object in the `format` field.
     # We use minItems/maxItems to enforce exact counts.
+    mcq_item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id", "type", "question", "options", "answer"],
+        "properties": {
+            "id": {"type": "integer"},
+            "type": {"type": "string", "enum": ["mcq"]},
+            "question": {"type": "string"},
+            "options": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["label", "text"],
+                    "properties": {
+                        "label": {"type": "string", "enum": ["A", "B", "C", "D"]},
+                        "text": {"type": "string"},
+                    },
+                },
+            },
+            "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
+            "explanation": {"type": "string"},
+        },
+    }
+
+    theory_item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id", "type", "question", "answer_text"],
+        "properties": {
+            "id": {"type": "integer"},
+            "type": {"type": "string", "enum": ["theory"]},
+            "question": {"type": "string"},
+            "answer_text": {"type": "string"},
+            "explanation": {"type": "string"},
+        },
+    }
+
+    if mode == "options":
+        item_schema: dict[str, Any] = mcq_item
+    elif mode == "theory":
+        item_schema = theory_item
+    else:
+        item_schema = {"oneOf": [mcq_item, theory_item]}
+
     return {
         "type": "object",
         "additionalProperties": False,
@@ -101,31 +196,7 @@ def _ollama_quiz_json_schema(*, num_questions: int) -> dict[str, Any]:
                 "type": "array",
                 "minItems": int(num_questions),
                 "maxItems": int(num_questions),
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["id", "question", "options", "answer", "explanation"],
-                    "properties": {
-                        "id": {"type": "integer"},
-                        "question": {"type": "string"},
-                        "options": {
-                            "type": "array",
-                            "minItems": 4,
-                            "maxItems": 4,
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": False,
-                                "required": ["label", "text"],
-                                "properties": {
-                                    "label": {"type": "string", "enum": ["A", "B", "C", "D"]},
-                                    "text": {"type": "string"},
-                                },
-                            },
-                        },
-                        "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
-                        "explanation": {"type": "string"},
-                    },
-                },
+                "items": item_schema,
             },
         },
     }
@@ -229,18 +300,23 @@ def _retry_prompt(previous_prompt: str, previous_output: str, *, num_questions: 
     ).strip()
 
 
-async def _generate_with_ollama(prompt: str, *, num_predict: int, num_questions: int) -> str:
-    if not settings.ollama_model:
-        raise QuizGeneratorError("Ollama model is not configured")
+async def _generate_with_ollama(prompt: str, *, num_predict: int, num_questions: int, mode: QuizMode) -> str:
+    model = _ollama_model()
 
     payload = {
-        "model": settings.ollama_model,
+        "model": model,
         "prompt": prompt,
         "system": "You are a strict JSON generator. Output only valid JSON. Do not output markdown or explanations.",
         # Enforce the expected response shape.
-        "format": _ollama_quiz_json_schema(num_questions=num_questions),
+        "format": _ollama_quiz_json_schema(num_questions=num_questions, mode=mode),
         "stream": False,
-        "options": {"temperature": 0.1, "num_predict": int(num_predict)},
+        # Keep model loaded between requests to avoid repeated cold-start latency.
+        "keep_alive": getattr(settings, "ollama_keep_alive", "10m"),
+        "options": {
+            "temperature": 0.1,
+            "num_predict": int(num_predict),
+            **_ollama_perf_options(),
+        },
     }
 
     # Quiz generations can be slow on local machines, especially with longer notes.
@@ -304,9 +380,7 @@ async def _generate_with_openai(prompt: str, *, max_tokens: int) -> str:
         raise QuizGeneratorError("OpenAI response was missing content")
 
     return (choice[0]["message"]["content"] or "").strip()
-
-
-async def generate_quiz_with_provider(text: str, *, num_questions: int) -> dict[str, Any]:
+async def generate_quiz_with_provider(text: str, *, num_questions: int, mode: QuizMode = "options") -> dict[str, Any]:
     provider = _configured_provider()
     if not provider:
         raise QuizGeneratorError("No quiz provider configured")
@@ -318,7 +392,7 @@ async def generate_quiz_with_provider(text: str, *, num_questions: int) -> dict[
     if not source:
         raise QuizGeneratorError("No extracted text available to generate a quiz")
 
-    prompt = _build_prompt(source, num_questions=num_questions)
+    prompt = _build_prompt(source, num_questions=num_questions, mode=mode)
 
     def _validate_shape(obj: Any) -> None:
         if not isinstance(obj, dict):
@@ -328,6 +402,47 @@ async def generate_quiz_with_provider(text: str, *, num_questions: int) -> dict[
             raise QuizGeneratorError("Quiz JSON must include a non-empty questions array")
         if len(qs) != num_questions:
             raise QuizGeneratorError(f"Quiz must include exactly {num_questions} questions")
+
+        mcq_seen = 0
+        theory_seen = 0
+
+        for idx, q in enumerate(qs):
+            if not isinstance(q, dict):
+                raise QuizGeneratorError("Each question must be an object")
+
+            q_type = q.get("type")
+            if not q_type:
+                # Back-compat: treat missing type as MCQ.
+                q_type = "mcq"
+                q["type"] = "mcq"
+
+            if q_type == "mcq":
+                mcq_seen += 1
+                opts = q.get("options")
+                if not isinstance(opts, list) or len(opts) != 4:
+                    raise QuizGeneratorError("MCQ question must include 4 options")
+                ans = q.get("answer")
+                if ans not in ("A", "B", "C", "D"):
+                    raise QuizGeneratorError("MCQ question must include answer A/B/C/D")
+            elif q_type == "theory":
+                theory_seen += 1
+                ans_text = (q.get("answer_text") or "").strip()
+                if not ans_text:
+                    raise QuizGeneratorError("Theory question must include answer_text")
+            else:
+                raise QuizGeneratorError("Question type must be 'mcq' or 'theory'")
+
+            if not (q.get("question") or "").strip():
+                raise QuizGeneratorError("Question text is missing")
+
+            # Ensure id exists
+            if "id" not in q:
+                q["id"] = idx + 1
+
+        if mode == "options" and theory_seen:
+            raise QuizGeneratorError("Mode 'options' must not include theory questions")
+        if mode == "theory" and mcq_seen:
+            raise QuizGeneratorError("Mode 'theory' must not include mcq questions")
 
     # Try once, then retry once with stricter prompt if JSON parsing fails.
     attempts = 2
@@ -340,7 +455,12 @@ async def generate_quiz_with_provider(text: str, *, num_questions: int) -> dict[
         if provider == "ollama":
             # If we had a parsing failure once already, increase token budget to reduce truncation risk.
             num_predict = base_num_predict if attempt_index == 0 else min(4096, int(base_num_predict * 1.8))
-            last_raw = await _generate_with_ollama(current_prompt, num_predict=num_predict, num_questions=num_questions)
+            last_raw = await _generate_with_ollama(
+                current_prompt,
+                num_predict=num_predict,
+                num_questions=num_questions,
+                mode=mode,
+            )
         else:
             last_raw = await _generate_with_openai(current_prompt, max_tokens=min(3000, 180 * num_questions))
 
