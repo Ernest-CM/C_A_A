@@ -249,6 +249,12 @@ export default function FilesDashboardPage() {
                           >
                             Quiz generator
                           </button>
+                          <button
+                            className="rounded-lg border bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800"
+                            onClick={() => router.push(`/dashboard/flashcards`)}
+                          >
+                            Flashcards
+                          </button>
                         </div>
                       ) : null}
                     </div>
