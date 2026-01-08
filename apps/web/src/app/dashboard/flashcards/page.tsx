@@ -115,41 +115,50 @@ export default function FlashcardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="p-6">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Flashcards</h1>
-            <p className="text-sm text-zinc-600">Pick note(s), generate a deck, and study.</p>
+            <p className="text-sm text-zinc-400">Pick note(s), generate a deck, and study.</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={() => router.push('/dashboard/files')}>
+            <button
+              className="rounded-xl border border-zinc-700 bg-zinc-900/40 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/60"
+              onClick={() => router.push('/dashboard/files')}
+            >
               Back to uploads
             </button>
-            <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={signOut}>
+            <button className="rounded-xl border border-zinc-700 bg-zinc-900/40 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/60" onClick={signOut}>
               Sign out
             </button>
           </div>
         </header>
 
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold">Inputs</h2>
-                <p className="mt-1 text-sm text-zinc-600">Only completed notes can be used.</p>
+                <p className="mt-1 text-sm text-zinc-400">Only completed notes can be used.</p>
               </div>
-              <button className="rounded-xl border px-3 py-1.5 text-sm" onClick={loadFiles} disabled={loadingFiles}>
+              <button
+                className="rounded-xl border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-sm text-zinc-100 hover:bg-zinc-900/50 disabled:opacity-50"
+                onClick={loadFiles}
+                disabled={loadingFiles}
+              >
                 {loadingFiles ? 'Loading…' : 'Reload'}
               </button>
             </div>
 
-            {filesError ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{filesError}</div> : null}
+            {filesError ? (
+              <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{filesError}</div>
+            ) : null}
 
             <div className="mt-4 space-y-4">
               <div>
                 <div className="text-xs text-zinc-500">Notes</div>
-                <div className="mt-2 max-h-64 space-y-2 overflow-auto rounded-xl border p-3">
+                <div className="mt-2 max-h-64 space-y-2 overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/20 p-3">
                   {completedFiles.length ? (
                     completedFiles.map((f) => (
                       <label key={f.id} className="flex items-center gap-2 text-sm">
@@ -165,7 +174,7 @@ export default function FlashcardsPage() {
                       </label>
                     ))
                   ) : (
-                    <div className="text-sm text-zinc-500">No completed notes yet.</div>
+                    <div className="text-sm text-zinc-400">No completed notes yet.</div>
                   )}
                 </div>
                 <div className="mt-1 text-xs text-zinc-500">Selected: {selectedIds.length}</div>
@@ -174,7 +183,7 @@ export default function FlashcardsPage() {
               <div>
                 <div className="text-xs text-zinc-500">Number of cards</div>
                 <input
-                  className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100"
                   type="number"
                   min={1}
                   max={100}
@@ -185,7 +194,7 @@ export default function FlashcardsPage() {
               </div>
 
               <button
-                className="w-full rounded-xl border bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
                 onClick={generate}
                 disabled={!selectedIds.length || generating}
               >
@@ -198,18 +207,20 @@ export default function FlashcardsPage() {
                 </div>
               ) : null}
 
-              {genError ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{genError}</div> : null}
+              {genError ? (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{genError}</div>
+              ) : null}
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
             <div>
               <h2 className="text-base font-semibold">Deck</h2>
-              <p className="mt-1 text-sm text-zinc-600">Click the card to flip.</p>
+              <p className="mt-1 text-sm text-zinc-400">Click the card to flip.</p>
             </div>
 
             {!deck ? (
-              <div className="mt-4 rounded-xl border border-dashed p-6 text-sm text-zinc-500">Generate a deck to see it here.</div>
+              <div className="mt-4 rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-400">Generate a deck to see it here.</div>
             ) : (
               <div className="mt-4 space-y-4">
                 <div>
@@ -223,16 +234,16 @@ export default function FlashcardsPage() {
 
                 <button
                   type="button"
-                  className="w-full rounded-2xl border bg-white p-6 text-left"
+                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/20 p-6 text-left hover:bg-zinc-950/30"
                   onClick={() => setShowBack((v) => !v)}
                 >
                   <div className="text-xs text-zinc-500">{showBack ? 'Back' : 'Front'}</div>
-                  <div className="mt-2 text-base font-semibold">{showBack ? current?.back : current?.front}</div>
+                  <div className="mt-2 text-base font-semibold text-zinc-50">{showBack ? current?.back : current?.front}</div>
                 </button>
 
                 <div className="flex items-center justify-between gap-2">
                   <button
-                    className="rounded-xl border bg-white px-4 py-2 text-sm disabled:opacity-50"
+                    className="rounded-xl border border-zinc-700 bg-zinc-900/30 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/50 disabled:opacity-50"
                     onClick={() => {
                       setIndex((i) => Math.max(0, i - 1))
                       setShowBack(false)
@@ -242,7 +253,7 @@ export default function FlashcardsPage() {
                     Prev
                   </button>
                   <button
-                    className="rounded-xl border bg-white px-4 py-2 text-sm disabled:opacity-50"
+                    className="rounded-xl border border-zinc-700 bg-zinc-900/30 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/50 disabled:opacity-50"
                     onClick={() => {
                       setIndex((i) => Math.min((deck.cards?.length || 1) - 1, i + 1))
                       setShowBack(false)

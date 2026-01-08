@@ -27,7 +27,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-900 text-zinc-100`}
       >
         <ClientRuntimeGuards />
         {children}

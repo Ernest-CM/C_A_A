@@ -87,7 +87,7 @@ function renderInlineMarkdown(text: string): React.ReactNode[] {
 
     const boldText = text.slice(start + 2, end)
     out.push(
-      <strong key={`b-${start}-${end}`} className="font-semibold text-zinc-900">
+      <strong key={`b-${start}-${end}`} className="font-semibold text-zinc-50">
         {boldText}
       </strong>,
     )
@@ -101,13 +101,13 @@ export function SummaryRenderer({ text }: { text: string }) {
   const segments = React.useMemo(() => parseSummary(text), [text])
 
   return (
-    <div className="font-sans text-sm leading-6 text-zinc-800">
+    <div className="font-sans text-sm leading-6 text-zinc-200">
       {segments.map((seg, idx) => {
         if (seg.type === 'ul') {
           return (
             <ul key={idx} className="my-2 list-disc space-y-1 pl-5">
               {seg.items.map((item, j) => (
-                <li key={j} className="text-zinc-800">
+                <li key={j} className="text-zinc-200">
                   {renderInlineMarkdown(item)}
                 </li>
               ))}

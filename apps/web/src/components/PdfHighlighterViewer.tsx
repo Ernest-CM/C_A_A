@@ -116,7 +116,7 @@ export function PdfHighlighterViewer({ blob, rules, onSelectionText }: Props) {
           const viewport = page.getViewport({ scale: 1.35 })
 
           const pageContainer = document.createElement('div')
-          pageContainer.className = 'pdf-page relative my-3 overflow-hidden rounded-xl border bg-white'
+          pageContainer.className = 'pdf-page relative my-3 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900'
 
           const canvas = document.createElement('canvas')
           const canvasContext = canvas.getContext('2d')
@@ -135,7 +135,7 @@ export function PdfHighlighterViewer({ blob, rules, onSelectionText }: Props) {
           canvasWrap.appendChild(textLayer)
 
           const pageLabel = document.createElement('div')
-          pageLabel.className = 'border-b px-3 py-2 text-xs text-zinc-600'
+          pageLabel.className = 'border-b border-zinc-800 bg-zinc-950/20 px-3 py-2 text-xs text-zinc-400'
           pageLabel.textContent = `Page ${pageNumber}`
 
           pageContainer.appendChild(pageLabel)
@@ -208,9 +208,9 @@ export function PdfHighlighterViewer({ blob, rules, onSelectionText }: Props) {
       `}</style>
 
       {loading ? (
-        <div className="rounded-xl border border-dashed p-6 text-sm text-zinc-500">Loading PDF…</div>
+        <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-400">Loading PDF…</div>
       ) : error ? (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>
       ) : (
         <div className="text-xs text-zinc-500">Pages: {numPages}</div>
       )}

@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev --turbopack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "markmap-lib": "^0.18.12",
+    "markmap-view": "^0.18.12",
     "next": "16.1.1",
     "pdfjs-dist": "^5.4.530",
     "react": "19.2.3",

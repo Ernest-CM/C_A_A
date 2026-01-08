@@ -182,30 +182,33 @@ export default function FilesDashboardPage() {
   }, [files])
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="p-6">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Uploads</h1>
-            <p className="text-sm text-zinc-600">Upload notes → extract text → view → delete.</p>
+            <p className="text-sm text-zinc-400">Upload notes → extract text → view → delete.</p>
           </div>
-          <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={signOut}>
+          <button
+            className="rounded-xl border border-zinc-700 bg-zinc-900/40 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/60"
+            onClick={signOut}
+          >
             Sign out
           </button>
         </header>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <section className="rounded-2xl border bg-white p-5">
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
             <h2 className="text-base font-semibold">Upload notes</h2>
-            <p className="mt-1 text-sm text-zinc-600">PDFs and images supported.</p>
+            <p className="mt-1 text-sm text-zinc-400">PDFs and images supported.</p>
             <div className="mt-4">
               <FileUploader onUploaded={loadFiles} />
             </div>
           </section>
 
-          <section className="rounded-2xl border bg-white p-5">
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
             <h2 className="text-base font-semibold">Viewer & extracted text</h2>
-            <p className="mt-1 text-sm text-zinc-600">View the original document and its extracted text.</p>
+            <p className="mt-1 text-sm text-zinc-400">View the original document and its extracted text.</p>
             <div className="mt-4">
               {selected ? (
                 <div className="space-y-2">
@@ -215,7 +218,7 @@ export default function FilesDashboardPage() {
                       <div className="text-xs text-zinc-500">Status: {selected.processing_status}</div>
                     </div>
                     <button
-                      className="shrink-0 rounded-xl border px-3 py-1.5 text-xs"
+                      className="shrink-0 rounded-xl border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-900/50 disabled:opacity-50"
                       onClick={() => loadText(selected.id)}
                       disabled={textLoading || selected.processing_status !== 'completed'}
                     >
@@ -227,54 +230,65 @@ export default function FilesDashboardPage() {
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-semibold">Document viewer</div>
                       {viewerUrl ? (
-                        <button className="rounded-lg border px-3 py-1.5 text-xs" onClick={closeViewer}>
+                        <button
+                          className="rounded-lg border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-900/50"
+                          onClick={closeViewer}
+                        >
                           Close
                         </button>
                       ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-xs text-zinc-500">Highlighter moved to its own page.</div>
+                      <div className="text-xs text-zinc-400">Highlighter moved to its own page.</div>
                       {selectedId ? (
                         <div className="flex items-center gap-2">
                           <button
-                            className="rounded-lg border bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800"
+                            className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/15"
                             onClick={() => router.push(`/dashboard/highlighter?fileId=${selectedId}`)}
                           >
                             Open highlighter
                           </button>
                           <button
-                            className="rounded-lg border bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"
+                            className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/15"
                             onClick={() => router.push(`/dashboard/quiz?fileId=${selectedId}`)}
                           >
                             Quiz generator
                           </button>
                           <button
-                            className="rounded-lg border bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800"
+                            className="rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/15"
                             onClick={() => router.push(`/dashboard/flashcards`)}
                           >
                             Flashcards
                           </button>
+                          <button
+                            className="rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-200 hover:bg-indigo-500/15"
+                            onClick={() => router.push(`/dashboard/mindmaps?fileId=${selectedId}`)}
+                          >
+                            Mind map
+                          </button>
                         </div>
                       ) : null}
                     </div>
-                    {viewerError ? <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{viewerError}</div> : null}
+                    {viewerError ? (
+                      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200">{viewerError}</div>
+                    ) : null}
                     {viewerLoading ? (
-                      <div className="rounded-xl border border-dashed p-6 text-sm text-zinc-500">Loading document…</div>
+                      <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-400">Loading document…</div>
                     ) : viewerUrl ? (
-                      <div className="overflow-hidden rounded-xl border bg-white">
-                        <div className="border-b px-3 py-2 text-xs text-zinc-600">{viewerName || 'Document'}</div>
+                      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/20">
+                        <div className="border-b border-zinc-800 bg-zinc-950/30 px-3 py-2 text-xs text-zinc-400">{viewerName || 'Document'}</div>
                         <iframe className="h-[70vh] w-full" src={viewerUrl} title={viewerName || 'Document viewer'} />
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed p-6 text-sm text-zinc-500">
+                      <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-400">
                         Click “View” on a file to open it here.
                       </div>
                     )}
                   </div>
 
                   <textarea
-                    className="h-64 w-full rounded-xl border p-3 font-mono text-xs"
+                    className="h-64 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 p-3 font-mono text-xs text-zinc-100"
                     readOnly
                     value={textLoading ? 'Loading…' : selected.processing_status !== 'completed' ? 'Not ready yet.' : text}
                   />
@@ -282,11 +296,11 @@ export default function FilesDashboardPage() {
                   <div className="space-y-2 pt-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold">Summarize</h3>
-                      <p className="text-xs text-zinc-500">Let your local LLM distill the key points.</p>
+                      <p className="text-xs text-zinc-400">Let your local LLM distill the key points.</p>
                     </div>
                     <div className="grid gap-3 md:grid-cols-[1fr,auto]">
                       <input
-                        className="rounded-xl border px-3 py-2 text-sm"
+                        className="rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500"
                         placeholder="Focus on, e.g., exam steps or therapy plans (optional)"
                         value={summaryFocus}
                         onChange={(event) => setSummaryFocus(event.target.value)}
@@ -294,7 +308,7 @@ export default function FilesDashboardPage() {
                       />
                       <div className="flex items-center justify-end gap-2">
                         <select
-                          className="rounded-xl border bg-white px-3 py-2 text-xs"
+                          className="rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-xs text-zinc-100"
                           value={summaryLength}
                           onChange={(event) => setSummaryLength(event.target.value as any)}
                           disabled={summaryLoading}
@@ -304,7 +318,7 @@ export default function FilesDashboardPage() {
                           <option value="long">Long</option>
                         </select>
                       <button
-                        className="rounded-xl border bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
+                        className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-50"
                         onClick={() => (selected ? generateSummary(selected.id) : undefined)}
                         disabled={summaryLoading || selected.processing_status !== 'completed'}
                       >
@@ -313,37 +327,40 @@ export default function FilesDashboardPage() {
                       </div>
                     </div>
                     {summaryError ? (
-                      <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{summaryError}</div>
+                      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200">{summaryError}</div>
                     ) : null}
                     {summary ? (
-                      <div className="rounded-2xl border border-dashed bg-zinc-100 p-4 text-sm text-zinc-800">
+                      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm">
                         <SummaryRenderer text={summary} />
                       </div>
                     ) : (
-                      <p className="text-xs text-zinc-500">Summaries stay cached until you look at another file.</p>
+                      <p className="text-xs text-zinc-400">Summaries stay cached until you look at another file.</p>
                     )}
                   </div>
 
                   {selected.extraction_error ? (
-                    <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{selected.extraction_error}</div>
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{selected.extraction_error}</div>
                   ) : null}
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed p-6 text-sm text-zinc-500">No file selected.</div>
+                <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-400">No file selected.</div>
               )}
             </div>
           </section>
         </div>
 
-        <section className="rounded-2xl border bg-white p-5">
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold">Your files</h2>
-            <button className="rounded-xl border px-3 py-1.5 text-sm" onClick={loadFiles}>
+            <button
+              className="rounded-xl border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-sm text-zinc-100 hover:bg-zinc-900/50"
+              onClick={loadFiles}
+            >
               Refresh
             </button>
           </div>
 
-          {error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+          {error ? <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</div> : null}
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -358,13 +375,13 @@ export default function FilesDashboardPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="py-3 text-zinc-600" colSpan={4}>
+                    <td className="py-3 text-zinc-400" colSpan={4}>
                       Loading…
                     </td>
                   </tr>
                 ) : files.length ? (
                   files.map((f) => (
-                    <tr key={f.id} className="border-t">
+                    <tr key={f.id} className="border-t border-zinc-800">
                       <td className="py-3">
                         <button
                           className="max-w-[420px] truncate text-left font-medium hover:underline"
@@ -376,15 +393,15 @@ export default function FilesDashboardPage() {
                           {f.original_file_name}
                         </button>
                       </td>
-                      <td className="py-3 text-zinc-600">{f.file_type}</td>
+                      <td className="py-3 text-zinc-400">{f.file_type}</td>
                       <td className="py-3">
                         <span
                           className={`rounded-full px-2 py-1 text-xs ${
                             f.processing_status === 'completed'
-                              ? 'bg-emerald-50 text-emerald-700'
+                              ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-200'
                               : f.processing_status === 'failed'
-                                ? 'bg-red-50 text-red-700'
-                                : 'bg-amber-50 text-amber-800'
+                                ? 'border border-red-500/20 bg-red-500/10 text-red-200'
+                                : 'border border-amber-500/20 bg-amber-500/10 text-amber-200'
                           }`}
                         >
                           {f.processing_status}
@@ -393,12 +410,15 @@ export default function FilesDashboardPage() {
                       <td className="py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <button
-                            className="rounded-lg border px-3 py-1.5 text-xs"
+                            className="rounded-lg border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-900/50"
                             onClick={() => viewFile(f)}
                           >
                             View
                           </button>
-                          <button className="rounded-lg border px-3 py-1.5 text-xs" onClick={() => del(f.id)}>
+                          <button
+                            className="rounded-lg border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-900/50"
+                            onClick={() => del(f.id)}
+                          >
                             Delete
                           </button>
                         </div>
@@ -407,7 +427,7 @@ export default function FilesDashboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td className="py-3 text-zinc-600" colSpan={4}>
+                    <td className="py-3 text-zinc-400" colSpan={4}>
                       No uploads yet.
                     </td>
                   </tr>

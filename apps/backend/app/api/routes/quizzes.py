@@ -25,6 +25,7 @@ class QuizRequest(BaseModel):
     file_ids: List[str] = Field(..., min_length=1)
     num_questions: int = Field(10, ge=1, le=50)
     mode: Literal["options", "theory", "both"] = "options"
+    provider: str | None = None  # 'ollama' | 'openai' | 'gemini'
 
 
 class GradeItem(BaseModel):
@@ -36,6 +37,7 @@ class GradeItem(BaseModel):
 class GradeRequest(BaseModel):
     items: List[GradeItem]
     responses: Dict[str, str]
+    provider: str | None = None  # 'ollama' | 'openai' | 'gemini'
 
 
 @router.post("/grade", summary="Grade theory answers")
@@ -56,7 +58,7 @@ async def grade_quiz(request: GradeRequest, user_id: str = Depends(get_current_u
         )
 
     try:
-        result = await grade_theory_answers(items=items)
+        result = await grade_theory_answers(items=items, provider=request.provider)
     except TheoryGraderError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
@@ -122,7 +124,12 @@ async def generate_quiz(request: QuizRequest, user_id: str = Depends(get_current
                 summary_result: dict[str, str] | None = None
                 summary_text = ""
                 try:
-                    summary_result = await summarize_text_with_provider(combined, focus=focus, length=length)
+                    summary_result = await summarize_text_with_provider(
+                        combined,
+                        focus=focus,
+                        length=length,
+                        provider=request.provider,
+                    )
                     summary_text = (summary_result.get("summary") or "").strip()
                 except SummarizerError:
                     summary_text = ""
@@ -152,7 +159,12 @@ async def generate_quiz(request: QuizRequest, user_id: str = Depends(get_current
         raise HTTPException(status_code=400, detail="No extracted text available for the selected notes")
 
     try:
-        result = await generate_quiz_with_provider(source_text, num_questions=request.num_questions, mode=request.mode)
+        result = await generate_quiz_with_provider(
+            source_text,
+            num_questions=request.num_questions,
+            mode=request.mode,
+            provider=request.provider,
+        )
     except QuizGeneratorError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

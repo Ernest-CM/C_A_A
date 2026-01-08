@@ -10,6 +10,7 @@ from typing import Any, Literal, Optional
 import httpx
 
 from app.core.config import settings
+from app.services.gemini_client import GeminiClientError, generate_text as gemini_generate_text
 
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,8 @@ def _configured_provider() -> str | None:
         return "ollama"
     if settings.openai_api_key:
         return "openai"
+    if settings.gemini_api_key:
+        return "gemini"
     return None
 
 
@@ -105,8 +108,12 @@ def _build_prompt(source: str, *, num_questions: int, mode: QuizMode) -> str:
         - Provide a concise model answer as a short text (1-2 sentences or key points).
 
         Explanation rules:
-        - Provide a brief explanation (1 short sentence, <= 120 characters) when possible.
-        - Keep questions clear and exam-style.
+        - Explanation is optional.
+        - If you include it: 1 short sentence, <= 120 characters.
+
+        Output size rules (important):
+        - Keep all strings concise.
+        - Do NOT include line breaks inside JSON strings.
 
         Output format:
         - Respond with ONLY valid JSON (no markdown, no extra text).
@@ -220,7 +227,47 @@ def _repair_common_json_issues(s: str) -> str:
     s = s.replace("\u201c", '"').replace("\u201d", '"').replace("\u2018", "'").replace("\u2019", "'")
     # Remove trailing commas before closing braces/brackets.
     s = re.sub(r",\s*([}\]])", r"\1", s)
+    # Some models emit literal newlines inside quoted strings (invalid JSON). Convert to \n.
+    s = _escape_newlines_in_strings(s)
     return s
+
+
+def _escape_newlines_in_strings(s: str) -> str:
+    out: list[str] = []
+    in_string = False
+    escape = False
+
+    for ch in s:
+        if in_string:
+            if escape:
+                escape = False
+                out.append(ch)
+                continue
+            if ch == "\\":
+                escape = True
+                out.append(ch)
+                continue
+            if ch == '"':
+                in_string = False
+                out.append(ch)
+                continue
+            if ch == "\n":
+                out.append("\\n")
+                continue
+            if ch == "\r":
+                # drop CR; if a following LF exists it will be handled above
+                continue
+            out.append(ch)
+            continue
+
+        if ch == '"':
+            in_string = True
+            out.append(ch)
+            continue
+
+        out.append(ch)
+
+    return "".join(out)
 
 
 def _first_balanced_json_object(s: str) -> str | None:
@@ -282,6 +329,9 @@ def _extract_json(text: str) -> Any:
 
 def _retry_prompt(previous_prompt: str, previous_output: str, *, num_questions: int) -> str:
     # Keep retry prompt short and strict.
+    snippet = (previous_output or "").strip()
+    if len(snippet) > 2000:
+        snippet = snippet[:2000]
     return textwrap.dedent(
         f"""\
         Your previous response did not match the required quiz JSON schema.
@@ -295,7 +345,7 @@ def _retry_prompt(previous_prompt: str, previous_output: str, *, num_questions: 
         {previous_prompt}
 
         INVALID OUTPUT (for reference)
-        {previous_output}
+        {snippet}
         """
     ).strip()
 
@@ -380,8 +430,31 @@ async def _generate_with_openai(prompt: str, *, max_tokens: int) -> str:
         raise QuizGeneratorError("OpenAI response was missing content")
 
     return (choice[0]["message"]["content"] or "").strip()
-async def generate_quiz_with_provider(text: str, *, num_questions: int, mode: QuizMode = "options") -> dict[str, Any]:
-    provider = _configured_provider()
+
+
+async def _generate_with_gemini(prompt: str, *, max_output_tokens: int) -> str:
+    try:
+        return await gemini_generate_text(
+            prompt,
+            system_prompt="You generate quizzes as valid JSON only.",
+            temperature=0.2,
+            max_output_tokens=int(max_output_tokens),
+            timeout_seconds=300.0,
+        )
+    except GeminiClientError as exc:
+        raise QuizGeneratorError(str(exc)) from exc
+
+
+async def generate_quiz_with_provider(
+    text: str,
+    *,
+    num_questions: int,
+    mode: QuizMode = "options",
+    provider: str | None = None,
+) -> dict[str, Any]:
+    provider = (provider or "").strip().lower() or None
+    if provider is None:
+        provider = _configured_provider()
     if not provider:
         raise QuizGeneratorError("No quiz provider configured")
 
@@ -444,12 +517,14 @@ async def generate_quiz_with_provider(text: str, *, num_questions: int, mode: Qu
         if mode == "theory" and mcq_seen:
             raise QuizGeneratorError("Mode 'theory' must not include mcq questions")
 
-    # Try once, then retry once with stricter prompt if JSON parsing fails.
-    attempts = 2
+    # Try once, then retry with stricter prompt if JSON parsing fails.
+    # Gemini is more likely to need an extra attempt due to formatting drift.
+    attempts = 3 if provider == "gemini" else 2
     last_raw: Optional[str] = None
     current_prompt = prompt
 
     base_num_predict = _num_predict_for_questions(num_questions)
+    base_gemini_max_output_tokens = max(1500, min(4096, int(260 * num_questions)))
 
     for attempt_index in range(attempts):
         if provider == "ollama":
@@ -461,8 +536,18 @@ async def generate_quiz_with_provider(text: str, *, num_questions: int, mode: Qu
                 num_questions=num_questions,
                 mode=mode,
             )
-        else:
+        elif provider == "openai":
             last_raw = await _generate_with_openai(current_prompt, max_tokens=min(3000, 180 * num_questions))
+        elif provider == "gemini":
+            # Gemini sometimes truncates, which breaks JSON. Increase output budget on retry.
+            max_output_tokens = (
+                base_gemini_max_output_tokens
+                if attempt_index == 0
+                else min(4096, int(base_gemini_max_output_tokens * 1.8))
+            )
+            last_raw = await _generate_with_gemini(current_prompt, max_output_tokens=max_output_tokens)
+        else:
+            raise QuizGeneratorError(f"Unsupported provider: {provider}")
 
         try:
             quiz = _extract_json(last_raw)
@@ -486,7 +571,7 @@ async def generate_quiz_with_provider(text: str, *, num_questions: int, mode: Qu
         snippet = (last_raw or "").strip().replace("\r", "")
         raise QuizGeneratorError(
             "Model did not return valid JSON. "
-            f"Ollama model: {settings.ollama_model}. "
+            f"Provider: {provider}. "
             f"Raw output (truncated): {snippet[:800]}"
         )
 

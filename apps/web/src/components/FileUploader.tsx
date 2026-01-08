@@ -29,7 +29,12 @@ export function FileUploader({ onUploaded }: { onUploaded: () => void }) {
 
   return (
     <div className="space-y-2">
-      <label className={`block rounded-2xl border-2 border-dashed p-6 text-center ${busy ? 'opacity-60' : ''}`}>
+      <label
+        className={
+          `block rounded-2xl border-2 border-dashed border-zinc-800 bg-zinc-950/20 p-6 text-center ` +
+          (busy ? 'opacity-60' : 'hover:bg-zinc-950/30')
+        }
+      >
         <input
           className="hidden"
           type="file"
@@ -38,14 +43,14 @@ export function FileUploader({ onUploaded }: { onUploaded: () => void }) {
           disabled={busy}
           onChange={(e) => onPickFiles(e.target.files)}
         />
-        <div className="text-sm text-zinc-700">
+        <div className="text-sm text-zinc-200">
           <div className="font-medium">Click to upload PDFs/images</div>
-          <div className="text-zinc-500">(you can select multiple files)</div>
+          <div className="text-zinc-400">(you can select multiple files)</div>
         </div>
       </label>
 
-      {busy ? <div className="text-sm text-zinc-600">Uploading…</div> : null}
-      {error ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+      {busy ? <div className="text-sm text-zinc-400">Uploading…</div> : null}
+      {error ? <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</div> : null}
     </div>
   )
 }

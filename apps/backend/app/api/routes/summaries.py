@@ -22,6 +22,7 @@ class SummarizeRequest(BaseModel):
     file_id: str
     focus: Optional[str] = None
     length: SummaryLength = "medium"
+    provider: Optional[str] = None  # 'ollama' | 'openai' | 'gemini'
 
 
 @router.post("", summary="Summarize extracted text")
@@ -49,7 +50,12 @@ async def summarize_content(request: SummarizeRequest, user_id: str = Depends(ge
         raise HTTPException(status_code=400, detail="No extracted text to summarize")
 
     try:
-        result = await summarize_text_with_provider(combined, request.focus, request.length)
+        result = await summarize_text_with_provider(
+            combined,
+            request.focus,
+            request.length,
+            provider=request.provider,
+        )
     except SummarizerError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

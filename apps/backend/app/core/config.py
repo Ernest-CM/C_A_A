@@ -23,6 +23,9 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
+    # Google Gemini
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash"
     ollama_url: str | None = None
     ollama_model: str | None = None
 
@@ -31,6 +34,7 @@ class Settings(BaseSettings):
     ollama_summary_model: str | None = None
     ollama_grader_model: str | None = None
     ollama_flashcards_model: str | None = None
+    ollama_mindmap_model: str | None = None
 
     # Ollama tuning
     # keep_alive accepts values like "30s", "5m", "1h" (Ollama API) and helps avoid
@@ -48,6 +52,7 @@ class Settings(BaseSettings):
     quiz_max_source_chars: int = 8000
     summary_max_chars: int = 15000
     flashcards_max_source_chars: int = 8000
+    mindmap_max_source_chars: int = 8000
 
     max_upload_bytes: int = 50 * 1024 * 1024
 

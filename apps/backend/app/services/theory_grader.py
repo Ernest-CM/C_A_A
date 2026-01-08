@@ -8,9 +8,10 @@ from typing import Any, Literal
 import httpx
 
 from app.core.config import settings
+from app.services.gemini_client import GeminiClientError, generate_text as gemini_generate_text
 
 
-GradeProvider = Literal["ollama", "openai"]
+GradeProvider = Literal["ollama", "openai", "gemini"]
 
 
 class TheoryGraderError(Exception):
@@ -22,6 +23,8 @@ def _configured_provider() -> GradeProvider | None:
         return "ollama"
     if settings.openai_api_key:
         return "openai"
+    if settings.gemini_api_key:
+        return "gemini"
     return None
 
 
@@ -117,51 +120,68 @@ def _build_prompt(items: list[dict[str, Any]]) -> str:
     ).strip()
 
 
-async def grade_theory_answers(*, items: list[dict[str, Any]]) -> dict[str, Any]:
-    provider = _configured_provider()
+async def grade_theory_answers(*, items: list[dict[str, Any]], provider: GradeProvider | str | None = None) -> dict[str, Any]:
+    provider = (provider or "").strip().lower() or None
+    if provider is None:
+        provider = _configured_provider()
     if not provider:
         raise TheoryGraderError("No grading provider configured")
 
     if not items:
         return {"grades": [], "provider": provider}
 
-    if provider != "ollama":
+    if provider == "openai":
         raise TheoryGraderError("Theory grading via OpenAI is not implemented")
 
-    model = _ollama_model()
     prompt = _build_prompt(items)
 
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "system": "You are a strict JSON grader. Output only valid JSON.",
-        "format": _grade_json_schema(n=len(items)),
-        "stream": False,
-        "keep_alive": getattr(settings, "ollama_keep_alive", "30m"),
-        "options": {
-            "temperature": 0,
-            "num_predict": 512,
-            **_perf_options(),
-        },
-    }
+    if provider == "ollama":
+        model = _ollama_model()
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "system": "You are a strict JSON grader. Output only valid JSON.",
+            "format": _grade_json_schema(n=len(items)),
+            "stream": False,
+            "keep_alive": getattr(settings, "ollama_keep_alive", "30m"),
+            "options": {
+                "temperature": 0,
+                "num_predict": 512,
+                **_perf_options(),
+            },
+        }
 
-    timeout = httpx.Timeout(180.0, connect=10.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
+        timeout = httpx.Timeout(180.0, connect=10.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                res = await client.post(_ollama_endpoint(), json=payload)
+                res.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise TheoryGraderError(f"Ollama grader request failed: {exc.response.text}") from exc
+            except httpx.TimeoutException as exc:
+                raise TheoryGraderError("Ollama grader timed out") from exc
+            except httpx.RequestError as exc:
+                raise TheoryGraderError(f"Ollama grader request error: {exc}") from exc
+
+        data = res.json()
+        if data.get("error"):
+            raise TheoryGraderError(f"Ollama grader error: {data.get('error')}")
+
+        raw = (data.get("response") or "").strip()
+    elif provider == "gemini":
         try:
-            res = await client.post(_ollama_endpoint(), json=payload)
-            res.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise TheoryGraderError(f"Ollama grader request failed: {exc.response.text}") from exc
-        except httpx.TimeoutException as exc:
-            raise TheoryGraderError("Ollama grader timed out") from exc
-        except httpx.RequestError as exc:
-            raise TheoryGraderError(f"Ollama grader request error: {exc}") from exc
+            raw = await gemini_generate_text(
+                prompt,
+                system_prompt="You are a strict JSON grader. Output only valid JSON.",
+                temperature=0.0,
+                max_output_tokens=768,
+                timeout_seconds=120.0,
+            )
+        except GeminiClientError as exc:
+            raise TheoryGraderError(str(exc)) from exc
+    else:
+        raise TheoryGraderError(f"Unsupported provider: {provider}")
 
-    data = res.json()
-    if data.get("error"):
-        raise TheoryGraderError(f"Ollama grader error: {data.get('error')}")
-
-    raw = (data.get("response") or "").strip()
     parsed = _extract_json(raw)
 
     grades = parsed.get("grades")
@@ -182,3 +202,4 @@ async def grade_theory_answers(*, items: list[dict[str, Any]]) -> dict[str, Any]
         out.append({"id": qid, "score": score})
 
     return {"grades": out, "provider": provider}
+

@@ -33,7 +33,7 @@ export default function LoginPage() {
       if (!data.access_token) throw new Error('Missing token')
 
       setAccessToken(data.access_token)
-      router.replace('/dashboard/files')
+      router.replace('/dashboard')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed')
     } finally {
@@ -42,16 +42,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-6">
-      <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-900 p-6 text-zinc-100">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <h1 className="text-2xl font-semibold">Departmental Study Buddy</h1>
-        <p className="mt-1 text-sm text-zinc-600">Sign in to upload notes and extract text.</p>
+        <p className="mt-1 text-sm text-zinc-400">Sign in to upload notes and extract text.</p>
 
         <div className="mt-6 space-y-3">
           <label className="block">
             <span className="text-sm font-medium">Email</span>
             <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
@@ -63,7 +63,7 @@ export default function LoginPage() {
           <label className="block">
             <span className="text-sm font-medium">Password</span>
             <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
@@ -72,7 +72,7 @@ export default function LoginPage() {
             />
           </label>
 
-          {error ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+          {error ? <div className="rounded-lg border border-red-900/40 bg-red-950/40 p-3 text-sm text-red-200">{error}</div> : null}
 
           <button
             className="w-full rounded-xl bg-black px-4 py-2 text-white disabled:opacity-50"
@@ -83,7 +83,7 @@ export default function LoginPage() {
           </button>
 
           <button
-            className="w-full rounded-xl border px-4 py-2 text-sm"
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-zinc-100"
             disabled={loading}
             onClick={() => setMode((m) => (m === 'signin' ? 'signup' : 'signin'))}
           >

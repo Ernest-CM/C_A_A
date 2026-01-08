@@ -9,12 +9,13 @@ from typing import Any, Literal, Optional
 import httpx
 
 from app.core.config import settings
+from app.services.gemini_client import GeminiClientError, generate_text as gemini_generate_text
 
 
 logger = logging.getLogger(__name__)
 
 
-FlashcardProvider = Literal["ollama", "openai"]
+FlashcardProvider = Literal["ollama", "openai", "gemini"]
 
 
 class FlashcardGeneratorError(Exception):
@@ -29,6 +30,8 @@ def _configured_provider() -> FlashcardProvider | None:
         return "ollama"
     if settings.openai_api_key:
         return "openai"
+    if settings.gemini_api_key:
+        return "gemini"
     return None
 
 
@@ -221,8 +224,28 @@ async def _generate_with_ollama(prompt: str, *, num_predict: int, num_cards: int
     return out
 
 
-async def generate_flashcards_with_provider(text: str, *, num_cards: int) -> dict[str, Any]:
-    provider = _configured_provider()
+async def _generate_with_gemini(prompt: str, *, max_output_tokens: int) -> str:
+    try:
+        return await gemini_generate_text(
+            prompt,
+            system_prompt="You are a strict JSON generator. Output only valid JSON.",
+            temperature=0.1,
+            max_output_tokens=int(max_output_tokens),
+            timeout_seconds=180.0,
+        )
+    except GeminiClientError as exc:
+        raise FlashcardGeneratorError(str(exc)) from exc
+
+
+async def generate_flashcards_with_provider(
+    text: str,
+    *,
+    num_cards: int,
+    provider: FlashcardProvider | str | None = None,
+) -> dict[str, Any]:
+    provider = (provider or "").strip().lower() or None
+    if provider is None:
+        provider = _configured_provider()
     if not provider:
         raise FlashcardGeneratorError("No flashcard provider configured")
 
@@ -262,8 +285,12 @@ async def generate_flashcards_with_provider(text: str, *, num_cards: int) -> dic
     for attempt in range(attempts):
         if provider == "ollama":
             raw = await _generate_with_ollama(current_prompt, num_predict=num_predict, num_cards=num_cards)
-        else:
+        elif provider == "gemini":
+            raw = await _generate_with_gemini(current_prompt, max_output_tokens=num_predict)
+        elif provider == "openai":
             raise FlashcardGeneratorError("OpenAI flashcards not implemented")
+        else:
+            raise FlashcardGeneratorError(f"Unsupported provider: {provider}")
 
         last_raw = raw
         try:
@@ -286,3 +313,4 @@ async def generate_flashcards_with_provider(text: str, *, num_cards: int) -> dic
             continue
 
     raise FlashcardGeneratorError("Model did not return valid JSON")
+

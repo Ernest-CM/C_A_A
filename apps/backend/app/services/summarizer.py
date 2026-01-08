@@ -6,6 +6,7 @@ from typing import Literal, Optional
 import httpx
 
 from app.core.config import settings
+from app.services.gemini_client import GeminiClientError, generate_text as gemini_generate_text
 
 
 MAX_SUMMARY_CHARS = 15000
@@ -22,6 +23,8 @@ def _configured_provider() -> str | None:
         return "ollama"
     if settings.openai_api_key:
         return "openai"
+    if settings.gemini_api_key:
+        return "gemini"
     return None
 
 
@@ -140,6 +143,19 @@ async def _summarize_with_openai(prompt: str, *, max_tokens: int) -> str:
     return choice[0]["message"]["content"].strip()
 
 
+async def _summarize_with_gemini(prompt: str, *, max_output_tokens: int) -> str:
+    try:
+        return await gemini_generate_text(
+            prompt,
+            system_prompt="You are the Departmental Study Buddy summarizer.",
+            temperature=0.3,
+            max_output_tokens=int(max_output_tokens),
+            timeout_seconds=120.0,
+        )
+    except GeminiClientError as exc:
+        raise SummarizerError(str(exc)) from exc
+
+
 async def summarize_text(text: str, focus: Optional[str] = None) -> str:
     # Back-compat wrapper: previous callers expected just a string.
     result = await summarize_text_with_provider(text=text, focus=focus, length="medium")
@@ -155,9 +171,14 @@ def _length_settings(length: SummaryLength) -> tuple[int, int, int]:
 
 
 async def summarize_text_with_provider(
-    text: str, focus: Optional[str] = None, length: SummaryLength = "medium"
+    text: str,
+    focus: Optional[str] = None,
+    length: SummaryLength = "medium",
+    provider: str | None = None,
 ) -> dict[str, str]:
-    provider = _configured_provider()
+    provider = (provider or "").strip().lower() or None
+    if provider is None:
+        provider = _configured_provider()
     if not provider:
         raise SummarizerError("No summarization provider configured")
 
@@ -183,5 +204,13 @@ async def summarize_text_with_provider(
         summary = await _summarize_with_ollama(prompt, num_predict=num_predict)
         return {"summary": summary, "provider": provider}
 
-    summary = await _summarize_with_openai(prompt, max_tokens=openai_max_tokens)
-    return {"summary": summary, "provider": provider}
+    if provider == "openai":
+        summary = await _summarize_with_openai(prompt, max_tokens=openai_max_tokens)
+        return {"summary": summary, "provider": provider}
+
+    if provider == "gemini":
+        # Use a similar budget to OpenAI max_tokens.
+        summary = await _summarize_with_gemini(prompt, max_output_tokens=openai_max_tokens)
+        return {"summary": summary, "provider": provider}
+
+    raise SummarizerError(f"Unsupported provider: {provider}")

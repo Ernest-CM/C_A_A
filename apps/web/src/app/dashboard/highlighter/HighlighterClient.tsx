@@ -286,19 +286,19 @@ export default function HighlighterClient() {
   }, [selectedId])
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="p-6">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">PDF Highlighter</h1>
-            <p className="text-sm text-zinc-600">Highlights are visual only; your document content is unchanged.</p>
+            <p className="text-sm text-zinc-400">Highlights are visual only; your document content is unchanged.</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={() => router.push('/dashboard/files')}>
+            <button className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-800" onClick={() => router.push('/dashboard/files')}>
               Back to uploads
             </button>
             <button
-              className="rounded-xl border bg-white px-4 py-2 text-sm"
+              className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-800"
               onClick={() => {
                 clearAccessToken()
                 router.replace('/login')
@@ -310,23 +310,23 @@ export default function HighlighterClient() {
         </header>
 
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold">Pick a PDF</h2>
-                <p className="mt-1 text-sm text-zinc-600">Select a completed PDF to load it into the highlighter.</p>
+                <p className="mt-1 text-sm text-zinc-400">Select a completed PDF to load it into the highlighter.</p>
               </div>
-              <button className="rounded-xl border px-3 py-1.5 text-sm" onClick={loadFiles} disabled={loadingFiles}>
+              <button className="rounded-xl border border-zinc-800 px-3 py-1.5 text-sm text-zinc-100 hover:bg-zinc-800" onClick={loadFiles} disabled={loadingFiles}>
                 {loadingFiles ? 'Loading…' : 'Reload'}
               </button>
             </div>
 
-            {filesError ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{filesError}</div> : null}
+            {filesError ? <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{filesError}</div> : null}
 
             <div className="mt-4">
               <div className="text-xs text-zinc-500">File</div>
               <select
-                className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100"
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
                 disabled={!files.length}
@@ -339,34 +339,34 @@ export default function HighlighterClient() {
               </select>
 
               {selected ? (
-                <div className="mt-3 text-xs text-zinc-600">
+                <div className="mt-3 text-xs text-zinc-400">
                   Status: <span className="font-medium">{selected.processing_status}</span>
-                  {selected.extraction_error ? <div className="mt-2 text-red-700">{selected.extraction_error}</div> : null}
+                  {selected.extraction_error ? <div className="mt-2 text-red-300">{selected.extraction_error}</div> : null}
                 </div>
               ) : null}
 
               <button
-                className="mt-4 w-full rounded-xl border bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="mt-4 w-full rounded-xl border border-indigo-600 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
                 onClick={() => openSelectedPdf(selectedId)}
                 disabled={!selectedId || selected?.processing_status !== 'completed' || viewerLoading}
               >
                 {viewerLoading ? 'Opening…' : 'Open in highlighter'}
               </button>
 
-              {viewerError ? <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{viewerError}</div> : null}
+              {viewerError ? <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{viewerError}</div> : null}
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
             <h2 className="text-base font-semibold">Highlight controls</h2>
-            <p className="mt-1 text-sm text-zinc-600">Priority: manual selection → focus query → AI summary keywords.</p>
+            <p className="mt-1 text-sm text-zinc-400">Priority: manual selection → focus query → AI summary keywords.</p>
 
             <div className="mt-4 grid gap-3">
-              <div className="rounded-xl border p-4">
+              <div className="rounded-xl border border-zinc-800 p-4">
                 <div className="text-xs text-zinc-500">Manual (select text in the PDF)</div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <select
-                    className="rounded-lg border bg-white px-2 py-1 text-xs"
+                    className="rounded-lg border border-zinc-800 bg-zinc-950/20 px-2 py-1 text-xs text-zinc-100"
                     value={manualColor}
                     onChange={(e) => setManualColor(e.target.value as HighlightColor)}
                     disabled={!viewerBlob}
@@ -377,7 +377,7 @@ export default function HighlighterClient() {
                   </select>
 
                   <button
-                    className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50"
+                    className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-800 disabled:opacity-50"
                     onClick={addManualHighlightFromSelection}
                     disabled={!viewerBlob || !selectedPdfText}
                   >
@@ -385,7 +385,7 @@ export default function HighlighterClient() {
                   </button>
 
                   <button
-                    className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50"
+                    className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-800 disabled:opacity-50"
                     onClick={() => setManualTerms([])}
                     disabled={!manualTerms.length}
                   >
@@ -394,16 +394,16 @@ export default function HighlighterClient() {
                 </div>
 
                 {selectedPdfText ? (
-                  <div className="mt-2 truncate text-xs text-zinc-600">
+                  <div className="mt-2 truncate text-xs text-zinc-400">
                     Selected: <span className="font-medium">{selectedPdfText}</span>
                   </div>
                 ) : null}
               </div>
 
-              <div className="rounded-xl border p-4">
+              <div className="rounded-xl border border-zinc-800 p-4">
                 <div className="text-xs text-zinc-500">Focus / search query</div>
                 <input
-                  className="mt-2 w-full rounded-lg border px-3 py-2 text-sm"
+                  className="mt-2 w-full rounded-lg border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500"
                   placeholder="Type a word/phrase to highlight"
                   value={focusQuery}
                   onChange={(e) => setFocusQuery(e.target.value)}
@@ -412,18 +412,18 @@ export default function HighlighterClient() {
                 <div className="mt-2 text-xs text-zinc-500">If empty, summary keywords are used as fallback.</div>
               </div>
 
-              <div className="rounded-xl border p-4">
+              <div className="rounded-xl border border-zinc-800 p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-zinc-500">AI summary (fallback)</div>
                     <div className="text-xs text-zinc-500">Generate a summary to derive highlight keywords.</div>
                   </div>
-                  {provider ? <span className="rounded-full bg-violet-50 px-3 py-2 text-xs text-violet-700">Used: {provider}</span> : null}
+                  {provider ? <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-300">Used: {provider}</span> : null}
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <select
-                    className="rounded-lg border bg-white px-2 py-1 text-xs"
+                    className="rounded-lg border border-zinc-800 bg-zinc-950/20 px-2 py-1 text-xs text-zinc-100"
                     value={summaryLength}
                     onChange={(e) => setSummaryLength(e.target.value as SummaryLength)}
                     disabled={summaryLoading}
@@ -434,7 +434,7 @@ export default function HighlighterClient() {
                   </select>
 
                   <button
-                    className="rounded-lg border bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 disabled:opacity-50"
+                    className="rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
                     onClick={generateSummary}
                     disabled={!selectedId || summaryLoading || selected?.processing_status !== 'completed'}
                   >
@@ -442,7 +442,7 @@ export default function HighlighterClient() {
                   </button>
 
                   <button
-                    className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50"
+                    className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-100 hover:bg-zinc-800 disabled:opacity-50"
                     onClick={() => {
                       setSummary('')
                       setProvider('')
@@ -454,10 +454,10 @@ export default function HighlighterClient() {
                   </button>
                 </div>
 
-                {summaryError ? <div className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{summaryError}</div> : null}
+                {summaryError ? <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{summaryError}</div> : null}
 
                 {summary ? (
-                  <div className="mt-3 rounded-xl border border-dashed bg-zinc-50 p-3">
+                  <div className="mt-3 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/40 p-3">
                     <div className="text-xs text-zinc-500">Summary</div>
                     <div className="mt-2">
                       <SummaryRenderer text={summary} />
@@ -469,15 +469,15 @@ export default function HighlighterClient() {
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-white p-5">
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
           <h2 className="text-base font-semibold">Viewer</h2>
-          <p className="mt-1 text-sm text-zinc-600">Tip: select text in the PDF, then click “Highlight selection”.</p>
+          <p className="mt-1 text-sm text-zinc-400">Tip: select text in the PDF, then click “Highlight selection”.</p>
 
           <div className="mt-4">
             {viewerBlob ? (
               <PdfHighlighterViewer blob={viewerBlob} rules={highlightRules} onSelectionText={setSelectedPdfText} />
             ) : (
-              <div className="rounded-xl border border-dashed p-6 text-sm text-zinc-500">Open a PDF to start highlighting.</div>
+              <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-500">Open a PDF to start highlighting.</div>
             )}
           </div>
         </section>

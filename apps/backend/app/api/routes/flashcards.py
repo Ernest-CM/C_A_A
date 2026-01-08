@@ -23,6 +23,7 @@ def _utc_now() -> datetime:
 class FlashcardsRequest(BaseModel):
     file_ids: List[str] = Field(..., min_length=1)
     num_cards: int = Field(20, ge=1, le=100)
+    provider: str | None = None  # 'ollama' | 'openai' | 'gemini'
 
 
 @router.post("", summary="Generate flashcards from extracted text")
@@ -80,7 +81,12 @@ async def generate_flashcards(request: FlashcardsRequest, user_id: str = Depends
                 summary_result: Optional[dict[str, str]] = None
                 summary_text = ""
                 try:
-                    summary_result = await summarize_text_with_provider(combined, focus=focus, length=length)
+                    summary_result = await summarize_text_with_provider(
+                        combined,
+                        focus=focus,
+                        length=length,
+                        provider=request.provider,
+                    )
                     summary_text = (summary_result.get("summary") or "").strip()
                 except SummarizerError:
                     summary_text = ""
@@ -110,7 +116,11 @@ async def generate_flashcards(request: FlashcardsRequest, user_id: str = Depends
         raise HTTPException(status_code=400, detail="No extracted text available for the selected notes")
 
     try:
-        result = await generate_flashcards_with_provider(source_text, num_cards=request.num_cards)
+        result = await generate_flashcards_with_provider(
+            source_text,
+            num_cards=request.num_cards,
+            provider=request.provider,
+        )
     except FlashcardGeneratorError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

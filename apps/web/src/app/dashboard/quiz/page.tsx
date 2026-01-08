@@ -271,42 +271,51 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="p-6">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Quiz Generator</h1>
-            <p className="text-sm text-zinc-600">Pick a note, choose the number of questions, and generate a quiz.</p>
+            <p className="text-sm text-zinc-400">Pick a note, choose the number of questions, and generate a quiz.</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={() => router.push('/dashboard/files')}>
+            <button
+              className="rounded-xl border border-zinc-700 bg-zinc-900/40 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/60"
+              onClick={() => router.push('/dashboard/files')}
+            >
               Back to uploads
             </button>
-            <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={signOut}>
+            <button className="rounded-xl border border-zinc-700 bg-zinc-900/40 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/60" onClick={signOut}>
               Sign out
             </button>
           </div>
         </header>
 
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold">Inputs</h2>
-                <p className="mt-1 text-sm text-zinc-600">Only completed notes can be used.</p>
+                <p className="mt-1 text-sm text-zinc-400">Only completed notes can be used.</p>
               </div>
-              <button className="rounded-xl border px-3 py-1.5 text-sm" onClick={loadFiles} disabled={loadingFiles}>
+              <button
+                className="rounded-xl border border-zinc-700 bg-zinc-900/30 px-3 py-1.5 text-sm text-zinc-100 hover:bg-zinc-900/50 disabled:opacity-50"
+                onClick={loadFiles}
+                disabled={loadingFiles}
+              >
                 {loadingFiles ? 'Loading…' : 'Reload'}
               </button>
             </div>
 
-            {filesError ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{filesError}</div> : null}
+            {filesError ? (
+              <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{filesError}</div>
+            ) : null}
 
             <div className="mt-4 space-y-4">
               <div>
                 <div className="text-xs text-zinc-500">Note</div>
                 <select
-                  className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100"
                   value={selectedId}
                   onChange={(e) => setSelectedId(e.target.value)}
                   disabled={!files.length}
@@ -325,7 +334,7 @@ export default function QuizPage() {
               <div>
                 <div className="text-xs text-zinc-500">Number of questions</div>
                 <input
-                  className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100"
                   type="number"
                   min={1}
                   max={50}
@@ -338,7 +347,7 @@ export default function QuizPage() {
               <div>
                 <div className="text-xs text-zinc-500">Mode</div>
                 <select
-                  className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100"
                   value={mode}
                   onChange={(e) => setMode(e.target.value as 'options' | 'theory' | 'both')}
                   disabled={generating}
@@ -372,7 +381,7 @@ export default function QuizPage() {
                       <div className="text-xs text-zinc-500">Time (minutes)</div>
                       <div className="mt-1 flex items-center gap-2">
                         <input
-                          className="w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                          className="w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100"
                           type="number"
                           min={1}
                           value={timeMinutes}
@@ -381,7 +390,7 @@ export default function QuizPage() {
                         />
                         <button
                           type="button"
-                          className="whitespace-nowrap rounded-xl border bg-white px-3 py-2 text-sm"
+                          className="whitespace-nowrap rounded-xl border border-zinc-700 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-100 hover:bg-zinc-900/50"
                           onClick={() => setTimeMinutes(recommendedMinutes)}
                           disabled={generating || timerRunning || submitted}
                         >
@@ -395,7 +404,7 @@ export default function QuizPage() {
               </div>
 
               <button
-                className="w-full rounded-xl border bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
                 onClick={generate}
                 disabled={!selectedId || generating || selected?.processing_status !== 'completed'}
               >
@@ -408,20 +417,22 @@ export default function QuizPage() {
                 </div>
               ) : null}
 
-              {quizError ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{quizError}</div> : null}
+              {quizError ? (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{quizError}</div>
+              ) : null}
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold">Quiz</h2>
-                <p className="mt-1 text-sm text-zinc-600">Answers are hidden under each question.</p>
+                <p className="mt-1 text-sm text-zinc-400">Answers are hidden under each question.</p>
               </div>
             </div>
 
             {!quiz ? (
-              <div className="mt-4 rounded-xl border border-dashed p-6 text-sm text-zinc-500">Generate a quiz to see it here.</div>
+              <div className="mt-4 rounded-xl border border-dashed border-zinc-800 p-6 text-sm text-zinc-400">Generate a quiz to see it here.</div>
             ) : (
               <div className="mt-4 space-y-4">
                 <div>
@@ -430,16 +441,16 @@ export default function QuizPage() {
                 </div>
 
                 {timed && timeLeftSeconds !== null ? (
-                  <div className="rounded-xl border bg-white p-4 text-sm">
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/20 p-4 text-sm">
                     <div className="text-xs text-zinc-500">Time remaining</div>
                     <div className="mt-1 text-lg font-semibold">{formattedTimeLeft}</div>
-                    {timeUp ? <div className="mt-1 text-xs text-red-700">Time is up — quiz auto-submitted.</div> : null}
+                    {timeUp ? <div className="mt-1 text-xs text-red-200">Time is up — quiz auto-submitted.</div> : null}
                   </div>
                 ) : null}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    className="rounded-xl border bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
                     onClick={() => submitQuiz(false)}
                     disabled={!quiz.questions?.length || generating || submitted || submitting || !allAnswered}
                   >
@@ -447,7 +458,10 @@ export default function QuizPage() {
                   </button>
 
                   {submitted ? (
-                    <button className="rounded-xl border bg-white px-4 py-2 text-sm" onClick={() => setShowReview((v) => !v)}>
+                    <button
+                      className="rounded-xl border border-zinc-700 bg-zinc-900/30 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900/50"
+                      onClick={() => setShowReview((v) => !v)}
+                    >
                       {showReview ? 'Hide review' : 'Review answers'}
                     </button>
                   ) : null}
@@ -457,10 +471,12 @@ export default function QuizPage() {
                   ) : null}
                 </div>
 
-                {submitError ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{submitError}</div> : null}
+                {submitError ? (
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{submitError}</div>
+                ) : null}
 
                 {submitted && score ? (
-                  <div className="rounded-xl border bg-zinc-50 p-4 text-sm text-zinc-800">
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-zinc-100">
                     <div className="font-semibold">Score</div>
                     <div className="mt-1">
                       {score.correct} / {score.total} ({score.percent}%)
@@ -470,7 +486,7 @@ export default function QuizPage() {
 
                 <div className="space-y-3">
                   {quiz.questions?.map((q, idx) => (
-                    <div key={q.id ?? idx} className="rounded-xl border p-4">
+                    <div key={q.id ?? idx} className="rounded-xl border border-zinc-800 bg-zinc-950/10 p-4">
                       <div className="text-sm font-semibold">
                         {idx + 1}. {q.question}
                       </div>
@@ -490,14 +506,14 @@ export default function QuizPage() {
                                 onClick={() => chooseAnswer(key, opt.label)}
                                 disabled={generating || submitted}
                                 className={
-                                  'rounded-lg border px-3 py-2 text-left disabled:opacity-60 ' +
+                                  'rounded-lg border px-3 py-2 text-left text-zinc-100 disabled:opacity-60 ' +
                                   (isCorrect
-                                    ? 'border-zinc-900 bg-white'
+                                    ? 'border-emerald-500/30 bg-emerald-500/10'
                                     : isWrongPicked
-                                    ? 'border-red-200 bg-red-50'
+                                    ? 'border-red-500/30 bg-red-500/10'
                                     : isPicked
-                                    ? 'border-zinc-900 bg-zinc-50'
-                                    : 'bg-white')
+                                    ? 'border-indigo-500/30 bg-indigo-500/10'
+                                    : 'border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/60')
                                 }
                               >
                                 <span className="font-semibold">{opt.label}.</span> {opt.text}
@@ -509,7 +525,7 @@ export default function QuizPage() {
                         <div className="mt-3">
                           <div className="text-xs text-zinc-500">Your answer</div>
                           <textarea
-                            className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm"
+                            className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950/20 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500"
                             rows={4}
                             value={responses[questionKey(q, idx)] || ''}
                             onChange={(e) => chooseAnswer(questionKey(q, idx), e.target.value)}
@@ -520,7 +536,7 @@ export default function QuizPage() {
                       )}
 
                       {submitted ? (
-                        <div className="mt-3 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-800">
+                        <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/20 p-3 text-sm text-zinc-100">
                           <div>
                             Your answer: <span className="font-semibold">{responses[questionKey(q, idx)] || '-'}</span>
                           </div>
@@ -535,7 +551,7 @@ export default function QuizPage() {
                                   Model answer: <span className="font-semibold">{q.answer_text || '-'}</span>
                                 </div>
                               )}
-                              {q.explanation ? <div className="mt-2 text-zinc-700">{q.explanation}</div> : null}
+                              {q.explanation ? <div className="mt-2 text-zinc-300">{q.explanation}</div> : null}
                             </>
                           ) : null}
                         </div>
